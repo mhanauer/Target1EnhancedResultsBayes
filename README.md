@@ -1,45 +1,60 @@
-# Example for Jags-Ymet-Xnom2grp-MrobustHet.R 
-#------------------------------------------------------------------------------- 
-# Optional generic preliminaries:
-graphics.off() # This closes all of R's graphics windows.
-rm(list=ls())  # Careful! This clears all of R's memory!
-#------------------------------------------------------------------------------- 
-# Load The data file 
+---
+title: "Enhanced Results"
+output:
+  pdf_document: default
+  html_document: default
+---
 
-setwd("C:/Users/Matthew.Hanauer/Desktop/DBDA2Eprograms 2")
-myDataFrame = read.csv( file="datAdultAnalysisMissingWide.csv")
-myDataFrame = subset(myDataFrame, Treatment == 1 | Treatment == 3)
-myDataFrame = na.omit(myDataFrame)
-yName="RASDiffF5"
-xName="Treatment"
-fileNameRoot = "TwoGroupIQrobustHet-" 
-RopeMuDiff=c(-1,1) ; RopeSdDiff=c(-0.5,0.5) ; RopeEff=c(-0.25,0.25)
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Library the packages
+```{r}
+library(MCMCpack)
+library(descr)
+```
+
+Prep the data
+```{r}
+setwd("P:/Evaluation/TN Lives Count_Writing/4_Target1_EnhancedCrisisFollow-up/3_Data & Data Analyses")
+dat = read.csv("EnhancedDataSet.csv", header = TRUE)
+head(dat)
+
+dat_wide = reshape(dat, v.names = c("RASTotalScoreF1", "RASTotalScoreF2", "RASTotalScoreF3", "RASTotalScoreF5", "INQTotalScoreF1", "INQTotalScoreF2", "SSMITotalScore"),  timevar = "Time", direction = "wide", idvar = "ID")
 
 
-graphFileType = "eps" 
-#------------------------------------------------------------------------------- 
-# Load the relevant model into R's working memory:
 
-source("Jags-Ymet-Xnom2grp-MrobustHet.R")
-#------------------------------------------------------------------------------- 
-# Generate the MCMC chain:
-mcmcCoda = genMCMC(datFrm=myDataFrame , yName=yName , xName=xName ,
-                    numSavedSteps=50000 , saveName=fileNameRoot )
-#------------------------------------------------------------------------------- 
-# Display diagnostics of chain, for specified parameters:
-parameterNames = varnames(mcmcCoda) # get all parameter names
-for ( parName in parameterNames ) {
-  diagMCMC( codaObject=mcmcCoda , parName=parName , 
-                saveName=fileNameRoot , saveType=graphFileType )
-}
-#------------------------------------------------------------------------------- 
-# Get summary statistics of chain:
-summaryInfo = smryMCMC( mcmcCoda , RopeMuDiff=RopeMuDiff , 
-                        RopeSdDiff=RopeSdDiff , RopeEff=RopeEff ,
-                        saveName=fileNameRoot )
-show(summaryInfo)
-# Display posterior information:
-plotMCMC( mcmcCoda , datFrm=myDataFrame , yName=yName , xName=xName , 
-          RopeMuDiff=RopeMuDiff , RopeSdDiff=RopeSdDiff , RopeEff=RopeEff ,
-          pairsPlot=TRUE , saveName=fileNameRoot , saveType=graphFileType )
-#------------------------------------------------------------------------------- 
+dat_wide$RASDiffF1 =dat_wide$RASTotalScoreF1.1-dat_wide$RASTotalScoreF1.0
+dat_wide$RASDiffF2 =dat_wide$RASTotalScoreF2.1-dat_wide$RASTotalScoreF2.0
+dat_wide$RASDiffF3 =dat_wide$RASTotalScoreF3.1-dat_wide$RASTotalScoreF3.0
+dat_wide$RASDiffF5 =dat_wide$RASTotalScoreF5.1-dat_wide$RASTotalScoreF5.0
+dat_wide$INQDiffF1 =dat_wide$INQTotalScoreF1.1-dat_wide$INQTotalScoreF1.0  
+dat_wide$INQDiffF2 =dat_wide$INQTotalScoreF2.1-dat_wide$INQTotalScoreF2.0
+dat_wide$SSMIDiff =dat_wide$SSMITotalScore.1-dat_wide$SSMITotalScore.0
+
+dim(dat_wide)
+dat_wide = data.frame(ID = dat_wide$ID, Age = dat_wide$Age, Gender = as.factor(dat_wide$Gender), Race = as.factor(dat_wide$Race), Treatment = as.factor(dat_wide$Treatment),Employment = as.factor(dat_wide$Employment),  RASDiffF5 = dat_wide$RASDiffF5)
+
+dat_wide = na.omit(dat_wide)
+dim(dat_wide)
+
+describe(dat_wide)
+
+range(dat_wide$RASDiffF5)
+sd(dat_wide$RASDiffF5)
+
+dat_wide$RASDiffF5_scaled = scale(dat_wide$RASDiffF5) 
+hist(dat_wide$RASDiffF5_scaled)
+
+```
+Regression to make sure the results match up with what we found
+```{r}
+compmeans(dat_wide$RASDiffF5_scaled,dat_wide$Treatment)
+
+post = MCMCregress(RASDiffF5_scaled ~ factor(Treatment), data = dat_wide)
+summary(post)
+plot(post)
+
+
+
+```
