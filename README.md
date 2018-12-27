@@ -1,45 +1,138 @@
-# Example for Jags-Ymet-Xnom2grp-MrobustHet.R 
-#------------------------------------------------------------------------------- 
-# Optional generic preliminaries:
-graphics.off() # This closes all of R's graphics windows.
-rm(list=ls())  # Careful! This clears all of R's memory!
-#------------------------------------------------------------------------------- 
-# Load The data file 
+---
+title: "Enhanced Results"
+output:
+  pdf_document: default
+  html_document: default
+---
 
-setwd("C:/Users/Matthew.Hanauer/Desktop/DBDA2Eprograms 2")
-myDataFrame = read.csv( file="datAdultAnalysisMissingWide.csv")
-myDataFrame = subset(myDataFrame, Treatment == 1 | Treatment == 3)
-myDataFrame = na.omit(myDataFrame)
-yName="RASDiffF5"
-xName="Treatment"
-fileNameRoot = "TwoGroupIQrobustHet-" 
-RopeMuDiff=c(-1,1) ; RopeSdDiff=c(-0.5,0.5) ; RopeEff=c(-0.25,0.25)
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Library the packages
+```{r}
+library(MCMCpack)
+library(descr)
+library(ggplot2)
+```
+
+Prep the data
+```{r}
+setwd("P:/Evaluation/TN Lives Count_Writing/4_Target1_EnhancedCrisisFollow-up/3_Data & Data Analyses")
+dat = read.csv("EnhancedDataSet.csv", header = TRUE)
+head(dat)
+
+dat_wide = reshape(dat, v.names = c("RASTotalScoreF1", "RASTotalScoreF2", "RASTotalScoreF3", "RASTotalScoreF5", "INQTotalScoreF1", "INQTotalScoreF2", "SSMITotalScore"),  timevar = "Time", direction = "wide", idvar = "ID")
 
 
-graphFileType = "eps" 
-#------------------------------------------------------------------------------- 
-# Load the relevant model into R's working memory:
 
-source("Jags-Ymet-Xnom2grp-MrobustHet.R")
-#------------------------------------------------------------------------------- 
-# Generate the MCMC chain:
-mcmcCoda = genMCMC(datFrm=myDataFrame , yName=yName , xName=xName ,
-                    numSavedSteps=50000 , saveName=fileNameRoot )
-#------------------------------------------------------------------------------- 
-# Display diagnostics of chain, for specified parameters:
-parameterNames = varnames(mcmcCoda) # get all parameter names
-for ( parName in parameterNames ) {
-  diagMCMC( codaObject=mcmcCoda , parName=parName , 
-                saveName=fileNameRoot , saveType=graphFileType )
-}
-#------------------------------------------------------------------------------- 
-# Get summary statistics of chain:
-summaryInfo = smryMCMC( mcmcCoda , RopeMuDiff=RopeMuDiff , 
-                        RopeSdDiff=RopeSdDiff , RopeEff=RopeEff ,
-                        saveName=fileNameRoot )
-show(summaryInfo)
-# Display posterior information:
-plotMCMC( mcmcCoda , datFrm=myDataFrame , yName=yName , xName=xName , 
-          RopeMuDiff=RopeMuDiff , RopeSdDiff=RopeSdDiff , RopeEff=RopeEff ,
-          pairsPlot=TRUE , saveName=fileNameRoot , saveType=graphFileType )
-#------------------------------------------------------------------------------- 
+dat_wide$RASDiffF1 =dat_wide$RASTotalScoreF1.1-dat_wide$RASTotalScoreF1.0
+dat_wide$RASDiffF2 =dat_wide$RASTotalScoreF2.1-dat_wide$RASTotalScoreF2.0
+dat_wide$RASDiffF3 =dat_wide$RASTotalScoreF3.1-dat_wide$RASTotalScoreF3.0
+dat_wide$RASDiffF5 =dat_wide$RASTotalScoreF5.1-dat_wide$RASTotalScoreF5.0
+dat_wide$INQDiffF1 =dat_wide$INQTotalScoreF1.1-dat_wide$INQTotalScoreF1.0  
+dat_wide$INQDiffF2 =dat_wide$INQTotalScoreF2.1-dat_wide$INQTotalScoreF2.0
+dat_wide$SSMIDiff =dat_wide$SSMITotalScore.1-dat_wide$SSMITotalScore.0
+
+dim(dat_wide)
+dat_wide = data.frame(ID = dat_wide$ID, Age = dat_wide$Age, Gender = as.factor(dat_wide$Gender), Race = as.factor(dat_wide$Race), Treatment = as.factor(dat_wide$Treatment),Employment = as.factor(dat_wide$Employment),  RASDiffF5 = dat_wide$RASDiffF5)
+
+dat_wide = na.omit(dat_wide)
+dim(dat_wide)
+
+describe(dat_wide)
+
+range(dat_wide$RASDiffF5)
+sd(dat_wide$RASDiffF5)
+
+dat_wide$RASDiffF5_scaled = scale(dat_wide$RASDiffF5) 
+hist(dat_wide$RASDiffF5_scaled)
+
+```
+Regression to make sure the results match up with what we found
+```{r}
+compmeans(dat_wide$RASDiffF5_scaled,dat_wide$Treatment)
+
+prior_mean = as.vector(c(0,.5, .8))
+prior_sd = as.vector(c(0,.1, .1))
+
+post_prior = MCMCregress(RASDiffF5_scaled ~ factor(Treatment), b0 = prior_mean, B0 = prior_sd,data = dat_wide, seed = 12345)
+summary(post_prior)
+HPDinterval(post_prior)
+
+post = MCMCregress(RASDiffF5_scaled ~ factor(Treatment),data = dat_wide, seed = 12345)
+summary(post)
+HPDinterval(post)
+
+```
+Diagnostics
+```{r}
+autocorr.plot(post_prior)
+autocorr.diag(post_prior)
+
+effectiveSize(post_prior)
+
+# Not sure what this means
+raftery.diag(post_prior)
+# Should be low this is a way to tell if we sampled all the possible spaces
+rejectionRate(post_prior)
+
+```
+Now try to get graphs for the posterior
+```{r}
+post_treatment2 =  data.frame(post_prior[,2])
+names(post_treatment2)[1] = "posterior"
+post_treatment3 = data.frame(post_prior[,3])
+names(post_treatment3)[1] = "posterior"
+
+quatile_post_treatment2 = quantile(post_treatment2$posterior,probs = c(.025, .975))
+quatile_post_treatment2 = data.frame(quatile = quatile_post_treatment2)
+ROPE = data.frame(ROPE = c(-.2, .2))
+quatile_post_treatment2
+ggplot(post_treatment2, aes(x = posterior)) +
+  geom_histogram() +
+  geom_vline(data = quatile_post_treatment2, aes(xintercept = quatile), linetype = "dashed") +
+  geom_vline(data = ROPE, aes(xintercept = ROPE))
+
+
+```
+Graph for treatment 3
+```{r}
+post_treatment3 = data.frame(post_prior[,3])
+names(post_treatment3)[1] = "posterior"
+
+quatile_post_treatment2 = quantile(post_treatment3$posterior,probs = c(.025, .975))
+quatile_post_treatment2 = data.frame(quatile = quatile_post_treatment2)
+ROPE = data.frame(ROPE = c(-.2, .2))
+
+ggplot(post_treatment3, aes(x = posterior)) +
+  geom_histogram() +
+  geom_vline(data = quatile_post_treatment2, aes(xintercept = quatile), linetype = "dashed") +
+  geom_vline(data = ROPE, aes(xintercept = ROPE))
+```
+Power for treatment two versus treatment one
+```{r}
+n = 200
+intercept = -0.4215
+treat2v1 = .583
+treat3v1 = .815
+intervention1  = c(rep(1,round(n*42/109,0)), rep(0,round(n*(109-42)/109,0)))
+length(intervention1)
+
+
+intervention2  = c(rep(1,round(n*38/109,0)), rep(0,round(n*(109-38)/109,0)))
+length(intervention2)
+
+intervention3 = c(rep(1,round(n*29/109,0)), rep(0,round(n*(109-29)/109,0)))
+length(intervention3)
+
+y = intercept + intervention2*treat2v1 + intervention3*treat3v1 + rnorm(n =n, mean = 0, sd = .3)
+
+dat_bayes_power = data.frame(y = y, intervention2, intervention3)
+```
+Now run the function
+```{r}
+
+
+```
+
+
