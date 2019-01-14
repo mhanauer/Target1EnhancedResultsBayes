@@ -237,24 +237,23 @@ y = intercept + intervention2*treat2v1 + intervention3*treat3v1 + rnorm(n =n, me
 
 dat_bayes_power = data.frame(y = y, intervention2, intervention3)
 
-
-prior_mean = as.vector(c(0,.4, .8))
-prior_sd = as.vector(c(0,.2, .2))
-
 post_prior = MCMCregress(y ~ intervention2 + intervention3,data = dat_bayes_power)
 
 post_prior_summary = summary(post_prior)
 cred_inter_2.5 = post_prior_summary$quantiles[2,c(1)]
+cred_inter_97.5 = post_prior_summary$quantiles[2,c(5)]
+
+### Now we want to get rid of really wide CI so we want everything this lower than -.2 on the lower 2.5 and is higher than .2 on the 97.5
+cred_inter_check = ifelse(cred_inter_97.5 > .2 & cred_inter_2.5 < -.2, 1,0)
 
 # This should world, because want to know whether the value is great .2 or less than -.2
 cred_inter_2.5 = ifelse(cred_inter_2.5 > .2 |  cred_inter_2.5 < -.2, 1, 0)
 
-cred_inter_97.5 = post_prior_summary$quantiles[2,c(5)]
-
 # This should world, because want to know whether the value is great .2 or less than -.2
 cred_inter_97.5 = ifelse(cred_inter_97.5 > .2 |  cred_inter_97.5 < -.2, 1, 0)
 #
-cred_inter = sum(cred_inter_2.5, cred_inter_97.5)
+## This works, because the only way you can have two is if you have ones for both of the above.  Then if you get three, this means you also meet the criteria where you are above and below each threshold 
+cred_inter = sum(cred_inter_2.5, cred_inter_97.5, cred_inter_check)
 cred_inter = ifelse(cred_inter == 2, 1,0)
 cred_inter
 }
@@ -290,16 +289,19 @@ post_prior = MCMCregress(y ~ intervention2 + intervention3,data = dat_bayes_powe
 
 post_prior_summary = summary(post_prior)
 cred_inter_2.5 = post_prior_summary$quantiles[2,c(1)]
+cred_inter_97.5 = post_prior_summary$quantiles[2,c(5)]
+
+### Now we want to get rid of really wide CI so we want everything this lower than -.2 on the lower 2.5 and is higher than .2 on the 97.5
+cred_inter_check = ifelse(cred_inter_97.5 > .2 & cred_inter_2.5 < -.2, 1,0)
 
 # This should world, because want to know whether the value is great .2 or less than -.2
 cred_inter_2.5 = ifelse(cred_inter_2.5 > .2 |  cred_inter_2.5 < -.2, 1, 0)
 
-cred_inter_97.5 = post_prior_summary$quantiles[2,c(5)]
-
 # This should world, because want to know whether the value is great .2 or less than -.2
 cred_inter_97.5 = ifelse(cred_inter_97.5 > .2 |  cred_inter_97.5 < -.2, 1, 0)
 #
-cred_inter = sum(cred_inter_2.5, cred_inter_97.5)
+
+cred_inter = sum(cred_inter_2.5, cred_inter_97.5, cred_inter_check)
 cred_inter = ifelse(cred_inter == 2, 1,0)
 cred_inter
 }
@@ -332,24 +334,22 @@ dat_bayes_power = data.frame(y = y, intervention2, intervention3)
 post_prior = MCMCregress(y ~ intervention2 + intervention3, data = dat_bayes_power)
 
 post_prior_summary = summary(post_prior)
-cred_inter_2.5 = post_prior_summary$quantiles[2,c(1)]
 
-## What about the absolute difference should be 
-abs(-.2-.2)
+
+cred_inter_2.5 = post_prior_summary$quantiles[2,c(1)]
+cred_inter_97.5 = post_prior_summary$quantiles[2,c(5)]
+
+### Now we want to get rid of really wide CI so we want everything this lower than -.2 on the lower 2.5 and is higher than .2 on the 97.5
+cred_inter_check = ifelse(cred_inter_97.5 > .2 & cred_inter_2.5 < -.2, 1,0)
 
 # This should world, because want to know whether the value is great .2 or less than -.2
 cred_inter_2.5 = ifelse(cred_inter_2.5 > .2 |  cred_inter_2.5 < -.2, 1, 0)
 
-cred_inter_97.5 = post_prior_summary$quantiles[2,c(5)]
-
 # This should world, because want to know whether the value is great .2 or less than -.2
 cred_inter_97.5 = ifelse(cred_inter_97.5 > .2 |  cred_inter_97.5 < -.2, 1, 0)
 #
-### Now we want to get rid of really wide CI so we want everything this lower than -.2 on the lower 2.5 and is higher than .2 on the 97.5
 
-
-
-cred_inter = sum(cred_inter_2.5, cred_inter_97.5)
+cred_inter = sum(cred_inter_2.5, cred_inter_97.5, cred_inter_check)
 cred_inter = ifelse(cred_inter == 2, 1,0)
 cred_inter
 }
