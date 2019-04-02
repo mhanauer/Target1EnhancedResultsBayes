@@ -69,6 +69,32 @@ HPDinterval(post)
 
 1/2^2
 ```
+Try models with rstan package
+```{r}
+library(rstanarm)
+post = stan_glm(RASDiffF5_scaled ~ factor(Treatment),data = dat_wide)
+summary(post)
+
+
+### Need to figure out how to include multiple priors 
+my_prior <- student_t(df = 10, location = c(.1,.4), scale = c(1/.2^2, 1/.2^2), autoscale = FALSE)
+post_prior = stan_glm(RASDiffF5_scaled ~ factor(Treatment),data = dat_wide, prior = my_prior)
+summary(post_prior)
+prior_summary(post_prior)
+
+### Bayesian R^2
+median(bayes_R2(post))
+median(bayes_R2(post_prior))
+
+### Track draws from the distribution and see if those draws are similar to actual value
+pp_check(post_prior)
+
+###Figure this out later
+posterior_predict(post)
+
+```
+
+
 Diagnostics
 ```{r}
 autocorr.plot(post_prior)
