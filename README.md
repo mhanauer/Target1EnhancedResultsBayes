@@ -284,36 +284,93 @@ dat_60_clients
 
 dat_80_clients = datAdultAnalysis_complete_wide[1:80,]
 dat_80_clients
-
+```
+Generate Bayes models with priors based on previous 20 data points
+```{r}
 library(rstanarm)
+## First with 20
 model_20_clients = stan_glm(diff_score ~ phone_text + phone_face, family = gaussian(link = "identity"), data = dat_20_clients)
 summary(model_20_clients)
 summary_model_20_clients =  summary(model_20_clients)
-summary_model_20_clients[,3]
+summary_model_20_clients
 
-my_prior_20 = student_t(df = 50, location = c(summary_model_20_clients[2,1], summary_model_20_clients[3,1]), scale = c(summary_model_20_clients[2,3], summary_model_20_clients[3,3]))
-my_prior_20_intercept = student_t(df = 50, location = summary_model_20_clients[1,1], scale = summary_model_20_clients[1,3])
-my_prior_error = student_t(df = 50, location = summary_model_20_clients[4,1], scale = summary_model_20_clients[4,3])
 
-model_40_clients = stan_glm(diff_score ~ phone_text + phone_face, prior = my_prior_20, prior_intercept = my_prior_20_intercept, prior_aux = my_prior_error, data = dat_40_clients)
+### Now try 40
+my_prior_20 = student_t(df = 25, location = c(summary_model_20_clients[2,1], summary_model_20_clients[3,1]), scale = c(summary_model_20_clients[2,3], summary_model_20_clients[3,3]))
+my_prior_20_intercept = student_t(df = 25, location = summary_model_20_clients[1,1], scale = summary_model_20_clients[1,3])
+my_prior_error_20 = student_t(df = 25, location = summary_model_20_clients[4,1], scale = summary_model_20_clients[4,3])
+
+model_40_clients = stan_glm(diff_score ~ phone_text + phone_face, prior = my_prior_20, prior_intercept = my_prior_20_intercept, prior_aux = my_prior_error_20, data = dat_40_clients)
 summary_model_40_clients = summary(model_40_clients)
 summary_model_40_clients
 
 ### Now try 60
-model_40_clients = stan_glm(diff_score ~ phone_text + phone_face, family = gaussian(link = "identity"), data = dat_40_clients)
-summary(model_40_clients)
-summary_model_40_clients =  summary(model_40_clients)
-summary_model_40_clients[,3]
+my_prior_40 = student_t(df = 25, location = c(summary_model_40_clients[2,1], summary_model_40_clients[3,1]), scale = c(summary_model_40_clients[2,3], summary_model_40_clients[3,3]))
+my_prior_40_intercept = student_t(df = 25, location = summary_model_40_clients[1,1], scale = summary_model_40_clients[1,3])
+my_prior_error_40 = student_t(df = 25, location = summary_model_40_clients[4,1], scale = summary_model_40_clients[4,3])
 
-my_prior_40 = student_t(df = 50, location = c(summary_model_40_clients[2,1], summary_model_40_clients[3,1]), scale = c(summary_model_40_clients[2,3], summary_model_40_clients[3,3]))
-my_prior_40_intercept = student_t(df = 50, location = summary_model_40_clients[1,1], scale = summary_model_40_clients[1,3])
-my_prior_error = student_t(df = 50, location = summary_model_40_clients[4,1], scale = summary_model_40_clients[4,3])
-
-model_60_clients = stan_glm(diff_score ~ phone_text + phone_face, prior = my_prior_40, prior_intercept = my_prior_40_intercept, prior_aux = my_prior_error, data = dat_60_clients)
+model_60_clients = stan_glm(diff_score ~ phone_text + phone_face, prior = my_prior_40, prior_intercept = my_prior_40_intercept, prior_aux = my_prior_error_40, data = dat_60_clients)
 summary_model_60_clients = summary(model_60_clients)
 summary_model_60_clients
 
+### Now try 80
+my_prior_60 = student_t(df = 25, location = c(summary_model_60_clients[2,1], summary_model_60_clients[3,1]), scale = c(summary_model_60_clients[2,3], summary_model_60_clients[3,3]))
+my_prior_60_intercept = student_t(df = 25, location = summary_model_60_clients[1,1], scale = summary_model_60_clients[1,3])
+my_prior_error_60 = student_t(df = 25, location = summary_model_60_clients[4,1], scale = summary_model_60_clients[4,3])
+
+model_80_clients = stan_glm(diff_score ~ phone_text + phone_face, prior = my_prior_60, prior_intercept = my_prior_60_intercept, prior_aux = my_prior_error_60, data = dat_80_clients)
+summary_model_80_clients = summary(model_80_clients)
+summary_model_80_clients
+
+## Grab the mean, sd, 2.5 and 97.5
+sum_bayes = rbind(summary_model_20_clients, summary_model_40_clients, summary_model_60_clients, summary_model_80_clients)
+sum_bayes
+sum_bayes = sum_bayes[,c(1,3,4,8)]
+sum_bayes = sum_bayes[c(2:3, 8:9, 14:15, 20:21),]
+sum_bayes = round(sum_bayes, 3)
+colnames(sum_bayes) = c("Estimate", "Standard_Deviation", "Lower_95", "Upper_95")
+rownames(sum_bayes) = c("phone_text_20", "phone_face_20", "phone_text_40", "phone_face_40", "phone_text_60", "phone_face_60", "phone_text_80", "phone_face_80")
+sum_bayes = data.frame(sum_bayes)
+sum_bayes
+## Short if parm divide by sd is greater than 2 then sig double check
+sum_bayes$Significant = ifelse(abs(sum_bayes$Estimate / sum_bayes$Standard_Deviation) > 2, "*", "")
+write.csv(sum_bayes, "sum_bayes.csv")
 ```
+Now run freq models
+```{r}
+model_20_clients_freq = lm(diff_score ~ phone_text + phone_face,data = dat_20_clients)
+summary(model_20_clients_freq)
+summary_model_20_clients_freq =  summary(model_20_clients_freq)
+summary_model_20_clients_freq
+
+
+model_40_clients_freq = lm(diff_score ~ phone_text + phone_face,data = dat_40_clients)
+summary(model_40_clients_freq)
+summary_model_40_clients_freq =  summary(model_40_clients_freq)
+summary_model_40_clients_freq
+
+
+model_60_clients_freq = lm(diff_score ~ phone_text + phone_face,data = dat_60_clients)
+summary(model_60_clients_freq)
+summary_model_60_clients_freq =  summary(model_60_clients_freq)
+summary_model_60_clients_freq
+
+
+model_80_clients_freq = lm(diff_score ~ phone_text + phone_face,data = dat_80_clients)
+summary(model_80_clients_freq)
+summary_model_80_clients_freq =  summary(model_80_clients_freq)
+summary_model_80_clients_freq
+
+sum_freq = rbind(summary_model_20_clients_freq$coefficients[2:3,c(1,2,4)], summary_model_40_clients_freq$coefficients[2:3,c(1,2,4)], summary_model_60_clients_freq$coefficients[2:3,c(1,2,4)], summary_model_80_clients_freq$coefficients[2:3,c(1,2,4)])
+
+sum_freq = data.frame(round(sum_freq, 3))
+colnames(sum_freq) = c("Estimate", "Standard_Error", "P_value")
+rownames(sum_freq) = c("phone_text_20", "phone_face_20", "phone_text_40", "phone_face_40", "phone_text_60", "phone_face_60", "phone_text_80", "phone_face_80")
+sum_freq
+sum_freq$Significant = ifelse(sum_freq$P_value < .05/4, "*", "")
+write.csv(sum_freq, "sum_freq.csv")
+```
+
 
 
 New plan:
@@ -473,7 +530,6 @@ plot_fig1 = ggplot(posterior, aes(x = posterior)) +
 
 ```
 
-
 Evaluate the difference between the parameter estimates to see if they are practically and statistically significanly different from each other
 ```{r}
 post_treatment2 =  data.frame(post_prior[,2])
@@ -561,10 +617,6 @@ save( y1, y2, mcmcChain, postInfo, file="BESTexampleMCMC.Rdata" )
 
 
 #-------------------------------------------------------------------------------
-
-
-
-
 ```
 Power for treatment two versus treatment one
 This is observed power 
@@ -785,6 +837,3 @@ plot1 = ggplot(post_treatment2, aes(x = posterior)) +
 
 grid.arrange(plot1,plot2)
 ```
-
-
-
