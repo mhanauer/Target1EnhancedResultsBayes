@@ -297,7 +297,9 @@ summary_model_20_clients
 
 ### Now try 40
 my_prior_20 = student_t(df = 25, location = c(summary_model_20_clients[2,1], summary_model_20_clients[3,1]), scale = c(summary_model_20_clients[2,3], summary_model_20_clients[3,3]))
+
 my_prior_20_intercept = student_t(df = 25, location = summary_model_20_clients[1,1], scale = summary_model_20_clients[1,3])
+
 my_prior_error_20 = student_t(df = 25, location = summary_model_20_clients[4,1], scale = summary_model_20_clients[4,3])
 
 model_40_clients = stan_glm(diff_score ~ phone_text + phone_face, prior = my_prior_20, prior_intercept = my_prior_20_intercept, prior_aux = my_prior_error_20, data = dat_40_clients)
@@ -328,7 +330,7 @@ sum_bayes
 sum_bayes = sum_bayes[,c(1,3,4,8)]
 sum_bayes = sum_bayes[c(2:3, 8:9, 14:15, 20:21),]
 sum_bayes = round(sum_bayes, 3)
-colnames(sum_bayes) = c("Estimate", "Standard_Deviation", "Lower_95", "Upper_95")
+colnames(sum_bayes) = c("Estimate", "Standard Deviation", "Lower_95", "Upper_95")
 rownames(sum_bayes) = c("phone_text_20", "phone_face_20", "phone_text_40", "phone_face_40", "phone_text_60", "phone_face_60", "phone_text_80", "phone_face_80")
 sum_bayes = data.frame(sum_bayes)
 sum_bayes
@@ -530,94 +532,7 @@ plot_fig1 = ggplot(posterior, aes(x = posterior)) +
 
 ```
 
-Evaluate the difference between the parameter estimates to see if they are practically and statistically significanly different from each other
-```{r}
-post_treatment2 =  data.frame(post_prior[,2])
-names(post_treatment2)[1] = "posterior2"
-post_treatment3 = data.frame(post_prior[,3])
-names(post_treatment3)[1] = "posterior3"
 
-post_treat23 = cbind(post_treatment2, post_treatment3)
-
-
-post_treat23_sample = post_treat23[sample(nrow(post_treat23),500),]
-dim(post_treat23_sample)
-
-
-# Version of 2015 Dec 02.
-# John K. Kruschke  
-# johnkruschke@gmail.com
-# http://www.indiana.edu/~kruschke/BEST/
-#
-# This program is believed to be free of errors, but it comes with no guarantee! 
-# The user bears all responsibility for interpreting the results. 
-# Please check the webpage above for updates or corrections.
-#
-################################################################################
-### To run this program, please prepare your computer as follows.
-### 1. Install the general-purpose programming language R from  
-###      http://www.r-project.org/
-###    Install the version of R appropriate for your computer's operating
-###    system (Windows, MacOS, or Linux).   
-### 2. Install the Bayesian MCMC sampling program JAGS from
-###      http://mcmc-jags.sourceforge.net/
-###    Again, intall the version appropriate for your operating system.
-### 3. Install the R editor, RStudio, from
-###      http://rstudio.org/
-###    This editor is not necessary, but highly recommended.
-### 4. Make sure that the following programs are all
-###    in the same folder as this file:
-###      BESTexample.R (this file)
-###      BEST.R
-###      DBDA2E-utilities.R
-###      BESTexamplePower.R 
-### 5. Make sure that R's working directory is the folder in which those 
-###    files reside. In RStudio, use menu tabs Tools -> Set Working Directory.
-###    If working in R, use menu tabs File -> Change Dir.
-### 6. After the above actions are accomplished, this program should
-###    run as-is in R. You may "source" it to run the whole thing at once,
-###    or, preferably, run lines one at a time in order.
-################################################################################
-
-# OPTIONAL: Clear R's memory and graphics:
-rm(list=ls())  # Careful! This clears all of R's memory!
-graphics.off() # This closes all of R's graphics windows.
-
-# Get the functions loaded into R's working memory:
-setwd("C:/Users/Matthew.Hanauer/Desktop/BEST")
-source("BEST.R")
-
-# Specify data as vectors. Replace with your own data as needed. 
-# (R can read many formats of data files, see the commands "read.csv" or "scan"
-# etc. Also see the R package "foreign".)
-y1 = post_treat23_sample$posterior2
-y2 = post_treat23_sample$posterior3
-
-#----------------------------------------------------------------------------
-# Run the Bayesian analysis using the default broad prior:
-mcmcChain = BESTmcmc( y1,  y2, priorOnly=FALSE ,numSavedSteps=12000 , thinSteps=5 , showMCMC=TRUE ) 
-postInfo = BESTplot( y1 , y2 , mcmcChain , ROPEeff=c(-0.1,0.1) ) 
-#----------------------------------------------------------------------------
-# Show detailed summary info on console, output from BESTplot, above:
-show( postInfo ) 
-# You can save the plot(s) using the pull-down menu in the R graphics window,
-# or by using the following:
-saveGraph( file="BESTexample" , type="png" )
-
-#----------------------------------------------------------------------------
-## Save the data and results for future use, e.g. for power computation:
-save( y1, y2, mcmcChain, postInfo, file="BESTexampleMCMC.Rdata" )
-## To re-load the saved data and MCMC chain, type: 
-# load( "BESTexampleMCMC.Rdata" ) 
-
-#----------------------------------------------------------------------------
-# Frequentist tests:
-# t.test(y1,y2)
-# var.test(y1,y2)
-
-
-#-------------------------------------------------------------------------------
-```
 Power for treatment two versus treatment one
 This is observed power 
 ```{r}
@@ -762,78 +677,4 @@ power
 
 
 
-Evaluate the difference between the parameter estimates to see if they are practically and statistically significanly different from each other
-```{r}
-post_treatment2 =  data.frame(post[,2])
-names(post_treatment2)[1] = "posterior2"
-post_treatment3 = data.frame(post[,3])
-names(post_treatment3)[1] = "posterior3"
 
-post_treat23 = cbind(post_treatment2, post_treatment3)
-
-
-post_treat23_sample = post_treat23[sample(nrow(post_treat23),500),]
-dim(post_treat23_sample)
-
-
-
-# OPTIONAL: Clear R's memory and graphics:
-#rm(list=ls())  # Careful! This clears all of R's memory!
-graphics.off() # This closes all of R's graphics windows.
-
-# Get the functions loaded into R's working memory:
-setwd("C:/Users/Matthew.Hanauer/Desktop/BEST")
-source("BEST.R")
-
-# Specify data as vectors. Replace with your own data as needed. 
-# (R can read many formats of data files, see the commands "read.csv" or "scan"
-# etc. Also see the R package "foreign".)
-y1 = post_treat23_sample$posterior2
-y2 = post_treat23_sample$posterior3
-
-#----------------------------------------------------------------------------
-# Run the Bayesian analysis using the default broad prior:
-mcmcChain = BESTmcmc( y1,  y2, priorOnly=FALSE ,numSavedSteps=12000 , thinSteps=5 , showMCMC=TRUE ) 
-postInfo = BESTplot( y1 , y2 , mcmcChain , ROPEeff=c(-0.1,0.1) ) 
-#----------------------------------------------------------------------------
-# Show detailed summary info on console, output from BESTplot, above:
-show( postInfo ) 
-```
-
-Graph for uninformed T1 v T2 and T1 v T3
-Get ready for informed graphs
-```{r}
-
-post_treatment2 =  data.frame(post[,2])
-names(post_treatment2)[1] = "posterior"
-
-quatile_post_treatment2 = quantile(post_treatment2$posterior,probs = c(.025, .975))
-quatile_post_treatment2 = data.frame(quatile = quatile_post_treatment2)
-ROPE = data.frame(ROPE = c(-.2, .2))
-
-post_treatment3 = data.frame(post[,3])
-names(post_treatment3)[1] = "posterior"
-
-quatile_post_treatment3 = quantile(post_treatment3$posterior,probs = c(.025, .975))
-quatile_post_treatment3 = data.frame(quatile = quatile_post_treatment3)
-ROPE = data.frame(ROPE = c(-.2, .2))
-```
-Posterior graph for informed T1 v T2 and T1 v T3
-Now try to get graphs for the posterior
-```{r}
-library(gridExtra)
-
-plot1 = ggplot(post_treatment2, aes(x = posterior)) +
-  geom_histogram() +
-  geom_vline(data = quatile_post_treatment2, aes(xintercept = quatile), linetype = "dashed") +
-  geom_vline(data = ROPE, aes(xintercept = ROPE)) +
-  ggtitle("Figure 3: Uninformed Posterior Program 1 v Program 2")
-  
-  plot2 = ggplot(post_treatment3, aes(x = posterior)) +
-  geom_histogram() +
-  geom_vline(data = quatile_post_treatment3, aes(xintercept = quatile), linetype = "dashed") +
-  geom_vline(data = ROPE, aes(xintercept = ROPE))+
-  ggtitle("Figure 4: Uninformed Posterior Program 1 v Program 3")
-
-grid.arrange(plot1,plot2)
-```
